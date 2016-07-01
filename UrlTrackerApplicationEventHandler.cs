@@ -2,22 +2,15 @@
 using InfoCaster.Umbraco.UrlTracker.Helpers;
 using InfoCaster.Umbraco.UrlTracker.Models;
 using InfoCaster.Umbraco.UrlTracker.Repositories;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Web;
 using System.Web.UI;
 using umbraco;
-using umbraco.BusinessLogic;
 using umbraco.cms.businesslogic;
 using umbraco.cms.businesslogic.web;
-using umbraco.DataLayer;
 using umbraco.NodeFactory;
 using Umbraco.Core;
 using Umbraco.Core.Events;
 using Umbraco.Core.Models;
-using Umbraco.Core.Publishing;
 using Umbraco.Core.Services;
 using Umbraco.Web.UI.Pages;
 
@@ -45,7 +38,6 @@ namespace InfoCaster.Umbraco.UrlTracker
                 UrlTrackerRepository.ReloadForcedRedirectsCache();
 
                 ContentService.Moving += ContentService_Moving;
-                ContentService.Publishing += ContentService_Publishing;
                 ContentService.Deleting += ContentService_Deleting;
                 content.BeforeClearDocumentCache += content_BeforeClearDocumentCache;
                 Domain.AfterDelete += Domain_AfterDelete;
@@ -63,69 +55,6 @@ namespace InfoCaster.Umbraco.UrlTracker
 #endif
                 {
                     UrlTrackerRepository.DeleteUrlTrackerEntriesByNodeId(content.Id);
-                }
-#if !DEBUG
-                catch (Exception ex)
-                {
-                    ex.LogException();
-                }
-#endif
-            }
-        }
-
-        void ContentService_Publishing(IPublishingStrategy sender, PublishEventArgs<IContent> e)
-        {
-            // When content is renamed or 'umbracoUrlName' property value is added/updated
-            foreach (IContent content in e.PublishedEntities)
-            {
-#if !DEBUG
-                try
-#endif
-                {
-                    Node node = new Node(content.Id);
-                    if (node.Name != content.Name && !string.IsNullOrEmpty(node.Name)) // If name is null, it's a new document
-                    {
-                        // Rename occurred
-                        UrlTrackerRepository.AddUrlMapping(content, node.GetDomainRootNode().Id, node.NiceUrl, AutoTrackingTypes.Renamed);
-
-                        if (ClientTools != null)
-                            ClientTools.ChangeContentFrameUrl(string.Concat("/umbraco/editContent.aspx?id=", content.Id));
-                    }
-                    if (content.HasProperty("umbracoUrlName"))
-                    {
-                        string contentUmbracoUrlNameValue = content.GetValue("umbracoUrlName") != null ? content.GetValue("umbracoUrlName").ToString() : string.Empty;
-                        string nodeUmbracoUrlNameValue = node.GetProperty("umbracoUrlName") != null ? node.GetProperty("umbracoUrlName").Value : string.Empty;
-                        if (contentUmbracoUrlNameValue != nodeUmbracoUrlNameValue)
-                        {
-                            // 'umbracoUrlName' property value added/changed
-                            UrlTrackerRepository.AddUrlMapping(content, node.GetDomainRootNode().Id, node.NiceUrl, AutoTrackingTypes.UrlOverwritten);
-
-                            if (ClientTools != null)
-                                ClientTools.ChangeContentFrameUrl(string.Concat("/umbraco/editContent.aspx?id=", content.Id));
-                        }
-                    }
-                    if (UrlTrackerSettings.SEOMetadataInstalled && content.HasProperty(UrlTrackerSettings.SEOMetadataPropertyName))
-                    {
-                        string contentSEOMetadataValue = content.GetValue(UrlTrackerSettings.SEOMetadataPropertyName) != null ? content.GetValue(UrlTrackerSettings.SEOMetadataPropertyName).ToString() : string.Empty;
-                        string nodeSEOMetadataValue = node.GetProperty(UrlTrackerSettings.SEOMetadataPropertyName) != null ? node.GetProperty(UrlTrackerSettings.SEOMetadataPropertyName).Value : string.Empty;
-                        if (contentSEOMetadataValue != nodeSEOMetadataValue)
-                        {
-                            dynamic contentJson = JObject.Parse(contentSEOMetadataValue);
-                            string contentUrlName = contentJson.urlName;
-
-                            dynamic nodeJson = JObject.Parse(nodeSEOMetadataValue);
-                            string nodeUrlName = nodeJson.urlName;
-
-                            if (contentUrlName != nodeUrlName)
-                            {
-                                // SEOMetadata UrlName property value added/changed
-                                UrlTrackerRepository.AddUrlMapping(content, node.GetDomainRootNode().Id, node.NiceUrl, AutoTrackingTypes.UrlOverwrittenSEOMetadata);
-
-                                if (ClientTools != null)
-                                    ClientTools.ChangeContentFrameUrl(string.Concat("/umbraco/editContent.aspx?id=", content.Id));
-                            }
-                        }
-                    }
                 }
 #if !DEBUG
                 catch (Exception ex)
