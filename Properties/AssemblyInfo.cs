@@ -6,7 +6,7 @@ using System.Web.UI;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("InfoCaster UrlTracker")]
+[assembly: AssemblyTitle("InfoCaster UrlTracker Bauer media customized version")]
 [assembly: AssemblyDescription("UrlTracker for Umbraco")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("InfoCaster")]
